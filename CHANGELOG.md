@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 - 2026-05-28
 
 ### Changed
 - Made SMTP username and password optional in the config UI, options UI, and YAML configuration.
