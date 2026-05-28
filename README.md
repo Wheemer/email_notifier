@@ -6,7 +6,7 @@
 
 **Sending email notifications from Home Assistant.**
 
-Credit where it is due: this fork is based on the original [Email Notifier](https://github.com/microteq/email_notifier) integration by [@microteq](https://github.com/microteq). The original project is based on Home Assistant's SMTP integration and adds a UI-based configuration flow for email notification accounts.
+The original project is based on Home Assistant's SMTP integration and adds a UI-based configuration flow for email notification accounts.
 
 This fork keeps that behavior and allows SMTP authentication to be skipped for local relays or SMTP servers that do not require a username and password.
 
@@ -226,11 +226,3 @@ This integration is published under the GNU General Public License v3.0.
 ## Attribution
 
 This fork is based on [microteq/email_notifier](https://github.com/microteq/email_notifier) by [@microteq](https://github.com/microteq). Email Notifier is based on the Home Assistant SMTP integration. Thanks also to onoffautomations for adding HTML, attachment, image, and custom sender features upstream.
-
-## Sponsorship
-
-If this integration is helpful to you, consider supporting the original project author:
-
-[![Sponsor microteq on GitHub](https://img.shields.io/badge/sponsor-microteq%20on%20GitHub-green)](https://github.com/sponsors/microteq)
-
-<a href="https://www.buymeacoffee.com/microteq" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="140" height="38" style="height: 38px !important;width: 140px !important;" ></a>
