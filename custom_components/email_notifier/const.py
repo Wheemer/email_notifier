@@ -28,7 +28,6 @@ CONF_ENCRYPTION: Final = "encryption"
 CONF_DEBUG: Final = "debug"
 CONF_SERVER: Final = "server"
 CONF_PORT: Final = "port"
-CONF_SMTP_AUTH: Final = "smtp_auth"
 CONF_USERNAME: Final = "username"
 CONF_PASSWORD: Final = "password"
 CONF_SENDER: Final = "sender"
@@ -42,6 +41,5 @@ DEFAULT_PORT: Final = 587
 DEFAULT_TIMEOUT: Final = 15
 DEFAULT_DEBUG: Final = False
 DEFAULT_ENCRYPTION: Final = "starttls"
-DEFAULT_SMTP_AUTH: Final = True
 
 ENCRYPTION_OPTIONS: Final = ["tls", "starttls", "none"]
