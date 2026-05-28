@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 - 2026-05-28
+
+### Changed
+- Updated the integration codeowner metadata to list only `@Wheemer` for this fork.
+
 ## 0.1.3 - 2026-05-28
 
 ### Changed
