@@ -24,11 +24,9 @@ from .const import (
     CONF_SENDER,
     CONF_SENDER_NAME,
     CONF_SERVER,
-    CONF_SMTP_AUTH,
     CONF_TEST_CONNECTION,
     CONF_TIMEOUT,
     CONF_USERNAME,
-    DEFAULT_SMTP_AUTH,
     DOMAIN,
     ENCRYPTION_OPTIONS,
     GLOBAL_API,
@@ -43,7 +41,6 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Required(CONF_SERVER): str,
                 vol.Required(CONF_PORT): str,
-                vol.Optional(CONF_SMTP_AUTH, default=DEFAULT_SMTP_AUTH): bool,
                 vol.Optional(CONF_USERNAME): str,
                 vol.Optional(CONF_PASSWORD): str,
                 vol.Required(CONF_SENDER): str,
@@ -131,8 +128,8 @@ async def async_setup(hass, config):
     if DOMAIN not in hass.data:
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][GLOBAL_API] = SmtpAPI(hass)
-    if "send_mail" in hass.services.async_services().get(DOMAIN, {}):
-        _LOGGER.info(f"Service {DOMAIN}.{"send_mail"} ist bereits registriert.")
+    if "send" in hass.services.async_services().get(DOMAIN, {}):
+        _LOGGER.info("Service %s.%s is already registered.", DOMAIN, "send")
     hass.services.async_register(
         DOMAIN,
         "send",
@@ -197,7 +194,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         num_entries = len(config_entries)
         if num_entries == 1:
             # Unregister the service, when last entry is removed
-            hass.services.async_remove(DOMAIN, "send_email")
+            hass.services.async_remove(DOMAIN, "send")
             # Remove all domain data
             hass.data.pop(DOMAIN)
     return unload_ok
