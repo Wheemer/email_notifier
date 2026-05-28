@@ -12,8 +12,6 @@ This fork keeps that behavior and allows SMTP authentication to be skipped for l
 
 ## Changelog
 
-### Current Fork Changes
-
 - Username and password are optional in the config UI and options UI.
 - SMTP authentication is used only when both username and password are provided.
 - When username or password is left blank, the SMTP client connects without calling `mail.login()`.
