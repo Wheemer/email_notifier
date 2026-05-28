@@ -1,107 +1,111 @@
-[![License](https://img.shields.io/github/license/microteq/email_notifier.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/Wheemer/email_notifier.svg)](LICENSE)
 [![HACS Supported](https://img.shields.io/badge/HACS-Supported-green.svg)](https://github.com/custom-components/hacs)
-![GitHub Activity](https://img.shields.io/github/commit-activity/y/microteq/email_notifier.svg?label=commits)
-[![Stable](https://img.shields.io/github/release/microteq/email_notifier.svg)](https://github.com/microteq/email_notifier/releases/latest)
-<!--![Downloads](https://img.shields.io/github/downloads/microteq/email_notifier/total)-->
+![GitHub Activity](https://img.shields.io/github/commit-activity/y/Wheemer/email_notifier.svg?label=commits)
+[![Stable](https://img.shields.io/github/release/Wheemer/email_notifier.svg)](https://github.com/Wheemer/email_notifier/releases/latest)
 
 # Home Assistant Email Notifier
+
 **Sending email notifications from Home Assistant.**
 
-The Email Notifier is an integration for Home Assistant allowing you to send email messages, notifications or alerts to any email recipient. The Email Notifier is based on the Home Assistant SMTP integration, but has a user interface for the email server configuration.
-<br />
-<br />
+Credit where it is due: this fork is based on the original [Email Notifier](https://github.com/microteq/email_notifier) integration by [@microteq](https://github.com/microteq). The original project is based on Home Assistant's SMTP integration and adds a UI-based configuration flow for email notification accounts.
+
+This fork keeps that behavior and adds optional SMTP authentication support for local relays or SMTP servers that do not require a username and password.
+
+## Fork Changes
+
+- Added a **Use SMTP Authentication** checkbox to the config UI and options UI.
+- SMTP authentication is enabled by default for compatibility with existing setups.
+- When SMTP authentication is enabled, username and password are required.
+- When SMTP authentication is disabled, username and password are hidden from the form and removed from saved config data.
+- The SMTP client skips `mail.login()` when authentication is disabled.
+- YAML configuration can also omit username and password when SMTP authentication is disabled.
 
 ## Features
-- Send Home Assistant alerts, notifications and messages to email recipient(s).
-- UI-based configuration for easy setup.
+
+- Send Home Assistant alerts, notifications, and messages to email recipients.
+- UI-based SMTP account configuration.
+- Optional SMTP authentication for unauthenticated local relays.
 - Backward compatibility with YAML configuration.
-- Supports sending messages to multiple recipients.
-- Send images and attachments.
-- Send plain text or html messages.
-- Options flow to update configurations without reinstallation.
+- Supports multiple recipients.
+- Sends plain text or HTML messages.
+- Supports inline images and file attachments, including local paths and remote URLs.
+- Options flow to update configurations without reinstalling the integration.
 - Detailed error handling and logging for troubleshooting.
-<br />
 
 ## Installation
 
-### HACS (recommended)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=microteq&repository=email_notifier)
+### HACS
 
-This is the recommended installation method.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Wheemer&repository=email_notifier)
 
-- Search for and install the Email Notifier integration from HACS
-- Restart Home Assistant
+Add this repository as a custom HACS repository:
+
+```text
+https://github.com/Wheemer/email_notifier
+```
+
+Then install **Email Notifier** from HACS and restart Home Assistant.
 
 ### Manual
-- Download the latest release.
-- Copy the contents of custom_components into the /config/custom_components directory of your Home Assistant installation.
-- Restart Home Assistant.
-<br>
+
+Download the latest release from [Wheemer/email_notifier/releases](https://github.com/Wheemer/email_notifier/releases), copy `custom_components/email_notifier` into `/config/custom_components/`, and restart Home Assistant.
 
 ## Configuration
 
-In your Home Assistant go to _Settings_ > _Devices & services_ and click on _Add integration_. In the search field, search for _email_ and select the integration. This will add an email account entity, you can use to send email notifications from. Fill in the needed information of your mail server. 
+In Home Assistant, go to _Settings_ > _Devices & services_, click _Add integration_, search for _email_, and select **Email Notifier**.
 
-### Configuration fields
+### Configuration Fields
 
 #### SMTP Server
-SMTP server which is used to send the notifications.
+SMTP server used to send notifications.
 
 #### Port (default: 587)
-The port that the SMTP server is using.
+The SMTP server port.
+
+#### Use SMTP Authentication (default: enabled)
+When enabled, the integration authenticates with the SMTP server using username and password. When disabled, username and password are not required and the integration connects without calling SMTP login.
 
 #### Username
-Username for the SMTP account.
+Username for the SMTP account. Required only when **Use SMTP Authentication** is enabled.
 
 #### Password
-Password for the SMTP server that belongs to the given username. 
+Password for the SMTP account. Required only when **Use SMTP Authentication** is enabled.
 
 #### Sender Email
-Email address of the sender.
+Email address used as the sender.
 
 #### Recipient Email(s)
-Default email address of the recipient of the notification. This can be a recipient address or a comma delimited list of addresses for multiple recipients.
-This is where you want to send your email notifications by default (when not specifying recipients in the action). Any email address(es) specified in the action’s recipient field will override this recipient content.
+Default recipient address, or a comma-delimited list of recipient addresses. Recipients supplied in a send action override this default.
 
-#### Sender name
-Sets a custom ‘sender name’ in the emails headers.
+#### Sender Name
+Optional display name for the sender.
 
 #### Encryption (default: starttls)
-Set mode for encryption, starttls, tls or none.
+SMTP encryption mode: `starttls`, `tls`, or `none`.
 
 #### Timeout (default: 15)
-The timeout in seconds that the SMTP server is using.
-<br>
-<br>
+SMTP connection timeout in seconds.
 
-### Google Mail
-Google has some extra layers of protection that need special attention. You must use an **application-specific** password in your notification configuration.
+## Google Mail
 
-If any of the following conditions are met you will not be able to create an app password:
+Google Mail requires SMTP authentication and an application-specific password. Leave **Use SMTP Authentication** enabled when using Gmail.
+
+You may not be able to create an app password if:
 
 - You do not have 2-step verification enabled on your account.
 - You have 2-step verification enabled but have only added a security key as an authentication mechanism.
-- Your Google account is enrolled in Google’s Advanced Protection Program.
-- Your Google account belongs to a Google Workspace that has disabled this feature. Accounts owned by a school, business, or other organization are examples of Google Workspace accounts.
-<br/>
+- Your Google account is enrolled in Google's Advanced Protection Program.
+- Your Google account belongs to a Google Workspace that has disabled app passwords.
 
 ## Usage
 
-The Email Notifier creates email accounts from which notifications can be sent. Each account also has a default recipient. In Home Assistant, sending a message is typically used as an action in an automation.
+The Email Notifier creates email account entities from which notifications can be sent. Each account has a default recipient list.
 
-### Using the user interface
+### Method A: Notify Action
 
-#### Method A
-In your automation, click on _Add action_, then on _Notifications,_ and select the action _Send a notification message_. In the _Message_ field, enter your message, and as _Target_, click on _Choose entity_ and select one (or more) sender email account(s). The recipients(s) will be the default recipients(s) defined in the mail account configuration. Then save your action.
+In an automation, click _Add action_, choose _Notifications_, then select _Send a notification message_. Enter your message and choose one or more Email Notifier sender entities as the target.
 
-#### Method B
-In your automation, click on _Add action_, then search for _email_ and select the _Email Notifier: Send Email_ action. Select your sender account and fill out the custom fields you need to send your email, such as recipient(s), subject, plain message, html message, attachments or images.
-
-### Writing YAML
-
-#### Method A
-
-```
+```yaml
 alias: Send Test Message
 description: ""
 triggers: []
@@ -115,9 +119,11 @@ actions:
 mode: single
 ```
 
-#### Medod B
+### Method B: Email Notifier Service
 
-```
+In an automation, click _Add action_, search for _email_, and select **Email Notifier: Send Email**. Choose the sender account and fill in optional fields such as recipients, subject, HTML, attachments, images, sender name, or reply-to address.
+
+```yaml
 alias: Send Test Message
 description: ""
 triggers: []
@@ -153,12 +159,11 @@ actions:
       sender_name: "Home Assistant Demo"
       reply_to: "support@mydomain.com"
 ```
-<br />
 
-### HTML Email Support
-**Description:** Send rich HTML emails with full styling, images, and formatting.
+## HTML Email
 
-**Usage Example:**
+HTML emails are sent as multipart MIME with both plain text and HTML versions. Email clients display the HTML version when supported and fall back to plain text otherwise.
+
 ```yaml
 service: email_notifier.send
 data:
@@ -170,91 +175,41 @@ data:
       <body>
         <h1 style="color: blue;">Alert</h1>
         <p>This is a <strong>rich HTML</strong> email with formatting.</p>
-        <ul>
-          <li>Feature 1</li>
-          <li>Feature 2</li>
-        </ul>
       </body>
     </html>
   recipients: "user@example.com"
 ```
-**Features:**
-- Sends as multipart MIME with both plain text and HTML versions
-- Email clients will display HTML version if supported, fall back to plain text otherwise
-- Supports inline images (see Images section below)
-<br/>
 
+## Attachments And Images
 
-### File Attachments (Local & Remote)
-**Description:** Attach any file type to emails, supporting both local files and remote URLs.
+Attachments and inline images support both local file paths and remote `http://` or `https://` URLs. Enter one file path or URL per line. Empty lines are ignored and whitespace is trimmed.
 
-**Supported Sources:**
-- Local files: `/config/www/report.pdf`
-- Remote URLs: `https://example.com/document.pdf`
-
-**Supported File Types:**
-- Documents: PDF, DOCX, TXT, CSV, XLSX
-- Images: JPG, PNG, GIF, BMP
-- Archives: ZIP, RAR, TAR
-- Any other file type
-
-**Usage Example:**
-```yaml
-service: email_notifier.send
-data:
-  account: notify.email_notification_sender_0
-  title: "Monthly Report Package"
-  message: "Please find attached the monthly reports."
-  attachments: |
-    /config/www/report.pdf
-    https://www.bhphotovideo.com/lit_files/1220335.pdf
-    /config/www/data.csv
-    https://example.com/remote_document.pdf
-  recipients: "user@example.com"
-```
-
-**Input Format:**
-- Enter one file path or URL per line in the multiline text box
-- Empty lines are automatically filtered out
-- Whitespace is trimmed from each line
-- Supports http:// and https:// protocols
-<br/>
-
-### Inline Images (Local & Remote)
-**Description:** Embed images directly in HTML emails using Content-ID references.
-
-**Usage Example:**
 ```yaml
 service: email_notifier.send
 data:
   account: notify.email_notification_sender_0
   title: "Camera Alert"
+  message: "Motion detected at front door"
   html: |
     <html>
       <body>
         <h1>Motion Detected</h1>
-        <p>Camera snapshot:</p>
         <img src="cid:camera.jpg" width="600"/>
-        <p>Logo:</p>
-        <img src="cid:logo.png"/>
       </body>
     </html>
   images: |
     /config/www/camera.jpg
     https://example.com/logo.png
+  attachments: |
+    /config/www/report.pdf
+    https://example.com/document.pdf
   recipients: "user@example.com"
 ```
 
-**How It Works:**
-- Images are embedded using Content-ID (cid:filename)
-- Reference images in HTML with `<img src="cid:filename.jpg"/>`
-- Supports both local files and remote URLs
-<br/>
+## Custom Sender Fields
 
-### Custom "From" Address
-**Description:** Override the sender's email address for individual messages.
+You can override sender details for a single message without changing the configured SMTP account.
 
-**Usage Example:**
 ```yaml
 service: email_notifier.send
 data:
@@ -262,93 +217,25 @@ data:
   title: "Security Alert"
   message: "Motion detected at front door"
   from_address: "security@mydomain.com"
-  recipients: "user@example.com"
-```
-
-**Notes:**
-- Overrides the configured sender address for this message only
-- The SMTP envelope sender remains the configured account (required for authentication)
-- The displayed "From" address in the email will be the custom address
-<br/>
-
-### Custom Display Name (Sender Name)
-**Description:** Set a custom display name for the sender.
-
-**Usage Example:**
-```yaml
-service: email_notifier.send
-data:
-  account: notify.email_notification_sender_0
-  title: "Alert"
-  message: "System notification"
   sender_name: "Home Security System"
+  reply_to: "support@mydomain.com"
   recipients: "user@example.com"
 ```
 
-**Combined with Custom From Address:**
-```yaml
-service: email_notifier.send
-data:
-  account: notify.email_notification_sender_0
-  title: "Alert"
-  message: "Notification"
-  from_address: "alerts@mydomain.com"
-  sender_name: "Home Assistant Alerts"
-  recipients: "user@example.com"
-```
-
-This will display as: **"Home Assistant Alerts <alerts@mydomain.com>"**
-<br/><br/>
-
-### Custom Reply-To Address
-**Description:** Specify where recipient replies should be directed.
-
-**Usage Example:**
-```yaml
-service: email_notifier.send
-data:
-  account: notify.email_notification_sender_0
-  title: "Survey"
-  message: "Please reply with your feedback"
-  reply_to: "feedback@mydomain.com"
-  recipients: "user@example.com"
-```
-
-**Use Cases:**
-- Direct replies to a support mailbox
-- Separate sending and receiving addresses
-- No-reply scenarios with monitored reply-to address
-<br/><br/><br/>
+When `sender_name` and `from_address` are both supplied, the displayed sender is formatted like `Home Security System <security@mydomain.com>`.
 
 ## License
 
 This integration is published under the GNU General Public License v3.0.
-<br />
-<br/>
 
 ## Attribution
 
-The Email Notifier is based on the Home Assistant SMTP integration. Thanks to onoffautomations for adding some new features.
-<br />
-<br />
-<br />
-<br />
-<br />
-<br />
+This fork is based on [microteq/email_notifier](https://github.com/microteq/email_notifier) by [@microteq](https://github.com/microteq). Email Notifier is based on the Home Assistant SMTP integration. Thanks also to onoffautomations for adding HTML, attachment, image, and custom sender features upstream.
 
-## About sponsorship
+## Sponsorship
 
-If this Home Assistant integration is helpful to you, please consider supporting this project. Sponsorship helps keep the project going, improve features, and fix any issues that arise. Your contribution goes a long way in making the project better for everyone.
+If this integration is helpful to you, consider supporting the original project author:
 
-
-[![Sponsor me on GitHub](https://img.shields.io/badge/sponsor-me%20on%20GitHub-green)](https://github.com/sponsors/microteq)
+[![Sponsor microteq on GitHub](https://img.shields.io/badge/sponsor-microteq%20on%20GitHub-green)](https://github.com/sponsors/microteq)
 
 <a href="https://www.buymeacoffee.com/microteq" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="140" height="38" style="height: 38px !important;width: 140px !important;" ></a>
-
-
-
-
-
-
-
-
