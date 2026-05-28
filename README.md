@@ -12,13 +12,15 @@ This fork keeps that behavior and allows SMTP authentication to be skipped for l
 
 ## Changelog
 
-- Username and password are optional in the config UI and options UI.
-- SMTP authentication is used only when both username and password are provided.
-- When username or password is left blank, the SMTP client connects without calling `mail.login()`.
-- Blank or incomplete username/password values are not saved in config entry data.
-- YAML configuration can omit username and password for unauthenticated SMTP servers.
-- The repository declares Home Assistant `2024.4.1` as the minimum supported version for HACS.
-- GitHub Actions validate the repository with both HACS validation and Hassfest.
+| Type | Change |
+| --- | --- |
+| Added | Support for unauthenticated SMTP servers by allowing username and password to be omitted. |
+| Changed | Username and password fields are now optional in both the config flow and options flow. |
+| Changed | SMTP login is only attempted when both username and password are provided. |
+| Fixed | Blank or incomplete SMTP credentials are no longer saved in config entry data. |
+| Changed | YAML configuration can now omit username and password for unauthenticated SMTP servers. |
+| Added | HACS metadata now declares Home Assistant `2024.4.1` as the minimum supported version. |
+| Added | GitHub Actions validation now runs both HACS validation and Hassfest. |
 
 ## Features
 
