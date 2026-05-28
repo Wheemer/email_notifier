@@ -24,11 +24,13 @@ from .const import (
     CONF_SENDER,
     CONF_SENDER_NAME,
     CONF_SERVER,
+    CONF_SMTP_AUTH,
     CONF_TEST_CONNECTION,
     CONF_TIMEOUT,
     CONF_USERNAME,
     DEFAULT_ENCRYPTION,
     DEFAULT_PORT,
+    DEFAULT_SMTP_AUTH,
     DEFAULT_TIMEOUT,
     DOMAIN,
     ENCRYPTION_OPTIONS,
@@ -51,6 +53,28 @@ def _test_connection(hass: HomeAssistant, user_input) -> bool:
 
 
 
+def _get_config_value(config_entry, user_input: dict[str, Any], key: str, default: Any = None) -> Any:
+    """Return a config value from form input, options, data, or default."""
+    return user_input.get(key, config_entry.options.get(key, config_entry.data.get(key, default)))
+
+
+
+def _auth_fields_present(user_input: dict[str, Any]) -> bool:
+    """Return true if auth fields were submitted from an auth-enabled form."""
+    return CONF_USERNAME in user_input or CONF_PASSWORD in user_input
+
+
+
+def _strip_auth_fields(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Remove auth-only fields when SMTP authentication is disabled."""
+    return {
+        key: value
+        for key, value in user_input.items()
+        if key not in (CONF_USERNAME, CONF_PASSWORD)
+    }
+
+
+
 # ***********************************************************************************************************************************************
 # Purpose:  Get config flow schema
 # History:  D.Geisenhoff    07-MAY-2025     Created
@@ -65,39 +89,36 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
         config_entry =  SimpleNamespace()
         config_entry.options = {}
         config_entry.data = {}
-    return vol.Schema(
-    {
+
+    smtp_auth = _get_config_value(config_entry, user_input, CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH)
+    schema = {
         vol.Required(
             CONF_SERVER,
-            default = user_input.get(CONF_SERVER,config_entry.options.get(CONF_SERVER, config_entry.data.get(CONF_SERVER))),
+            default = _get_config_value(config_entry, user_input, CONF_SERVER),
         ): str,
         vol.Required(
             CONF_PORT,
-            default = user_input.get(CONF_PORT,config_entry.options.get(CONF_PORT, config_entry.data.get(CONF_PORT, DEFAULT_PORT))),
+            default = _get_config_value(config_entry, user_input, CONF_PORT, DEFAULT_PORT),
         ): int,
-        vol.Required(
-            CONF_USERNAME,
-            default = user_input.get(CONF_USERNAME, config_entry.options.get(CONF_USERNAME, config_entry.data.get(CONF_USERNAME))),
-        ): str,
-        vol.Required(
-            CONF_PASSWORD,
-            default = user_input.get(CONF_PASSWORD, config_entry.options.get(CONF_PASSWORD, config_entry.data.get(CONF_PASSWORD))),
-        ): str,
+        vol.Optional(
+            CONF_SMTP_AUTH,
+            default = smtp_auth,
+        ): bool,
         vol.Required(
             CONF_SENDER,
-            default = user_input.get(CONF_SENDER, config_entry.options.get(CONF_SENDER, config_entry.data.get(CONF_SENDER))),
+            default = _get_config_value(config_entry, user_input, CONF_SENDER),
         ): str,
         vol.Required(
             CONF_RECIPIENTS,
-            default = user_input.get(CONF_RECIPIENTS, config_entry.options.get(CONF_RECIPIENTS, config_entry.data.get(CONF_RECIPIENTS))),
+            default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
         ): str,
         vol.Optional(
             CONF_SENDER_NAME,
-            default = user_input.get(CONF_SENDER_NAME, config_entry.options.get(CONF_SENDER_NAME, config_entry.data.get(CONF_SENDER_NAME,"Home Assistant"))),
+            default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
         ): str,
         vol.Required(
                 CONF_ENCRYPTION,
-                default = user_input.get(CONF_ENCRYPTION, config_entry.options.get(CONF_ENCRYPTION, config_entry.data.get(CONF_ENCRYPTION, DEFAULT_ENCRYPTION))),
+                default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options =  ENCRYPTION_OPTIONS,
@@ -105,10 +126,24 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
             )),
         vol.Required(
             CONF_TIMEOUT,
-            default = user_input.get(CONF_TIMEOUT, config_entry.options.get(CONF_TIMEOUT, config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT))),
+            default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
         ): int,
         vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
-    })
+    }
+    if smtp_auth:
+        schema.update(
+            {
+                vol.Required(
+                    CONF_USERNAME,
+                    default = _get_config_value(config_entry, user_input, CONF_USERNAME),
+                ): str,
+                vol.Required(
+                    CONF_PASSWORD,
+                    default = _get_config_value(config_entry, user_input, CONF_PASSWORD),
+                ): str,
+            }
+        )
+    return vol.Schema(schema)
 
 
 
@@ -126,6 +161,9 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            if not user_input.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH) and _auth_fields_present(user_input):
+                user_input = _strip_auth_fields(user_input)
+                return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     errors["base"] = "connection_failed"
@@ -149,7 +187,7 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @property
     def _title_placeholders(self) -> dict[str, str]:
-        """Return title placeholders für die Entry."""
+        """Return title placeholders fuer die Entry."""
         return {"email": "test@microteq.ch"}
 
 
@@ -175,6 +213,9 @@ class EmailClientOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult[ConfigFlowContext, str]:
         """Manage the options."""
         if user_input is not None:
+            if not user_input.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH) and _auth_fields_present(user_input):
+                user_input = _strip_auth_fields(user_input)
+                return self.async_show_form(step_id="init", data_schema=get_schema(self, user_input))
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     return self.async_show_form(
