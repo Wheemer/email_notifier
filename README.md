@@ -1,7 +1,7 @@
-[![License](https://img.shields.io/github/license/Wheemer/email_notifier.svg)](LICENSE)
-[![HACS Supported](https://img.shields.io/badge/HACS-Supported-green.svg)](https://github.com/custom-components/hacs)
-![GitHub Activity](https://img.shields.io/github/commit-activity/y/Wheemer/email_notifier.svg?label=commits)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.5%2B-41BDF5.svg)](https://www.home-assistant.io/)
 [![Stable](https://img.shields.io/github/release/Wheemer/email_notifier.svg)](https://github.com/Wheemer/email_notifier/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Wheemer/email_notifier/total.svg)](https://github.com/Wheemer/email_notifier/releases)
 
 # Home Assistant Email Notifier
 
