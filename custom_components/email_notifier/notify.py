@@ -20,7 +20,6 @@ from homeassistant.const import (
     CONF_TIMEOUT,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
-    Platform,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -43,8 +42,6 @@ from .const import (
     GLOBAL_COUNTER,
 )
 
-PLATFORMS = [Platform.NOTIFY]
-
 PLATFORM_SCHEMA = NOTIFY_PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_RECIPIENTS): vol.All(cv.ensure_list, [vol.Email]),
@@ -63,38 +60,6 @@ PLATFORM_SCHEMA = NOTIFY_PLATFORM_SCHEMA.extend(
 
 
 # ***********************************************************************************************************************************************
-# Purpose:  Setup service (ever called?)
-# History:  D.Geisenhoff    07-MAY-2025     Created
-# ***********************************************************************************************************************************************
-# def async_get_service(
-#     hass: HomeAssistant,
-#     config: ConfigType,
-#     discovery_info: DiscoveryInfoType | None = None,
-# ) -> MailNotificationService | None:
-#     """Get the mail notification service."""
-#     setup_reload_service(hass, DOMAIN, PLATFORMS)
-#     mail_service = MailNotificationService(
-#         config[CONF_SERVER],
-#         config[CONF_PORT],
-#         config[CONF_TIMEOUT],
-#         config[CONF_SENDER],
-#         config[CONF_ENCRYPTION],
-#         config.get(CONF_USERNAME),
-#         config.get(CONF_PASSWORD),
-#         config[CONF_RECIPIENTS],
-#         config.get(CONF_SENDER_NAME),
-#         config[CONF_DEBUG],
-#         config[CONF_VERIFY_SSL],
-#         0
-#     )
-#     #Test connection
-#     if mail_service.connection_is_valid():
-#         return mail_service
-
-#     return None
-
-
-# ***********************************************************************************************************************************************
 # Purpose:  Setup email client entity (runs when Home Assist is started or when the integration is added)
 # History:  D.Geisenhoff    24-JAN-2025     Created
 # ***********************************************************************************************************************************************
@@ -108,8 +73,6 @@ async def async_setup_entry(
     # Store the notify service in hass.data (no need to store as entity id, because there is only one entity per entry)
     hass.data[DOMAIN][config_entry.entry_id] = notify_service
     async_add_entities([notify_service])
-    api = hass.data[DOMAIN]['api']
-    return api.connection_is_valid(config_entry.data)
 
 
 # ***********************************************************************************************************************************************
@@ -134,30 +97,11 @@ class MailNotificationService(BaseNotificationService, Entity):
         super().__init__()
         self.hass = hass
         self.config_entry = config_entry
-        self.tries = 2
         self._attr_unique_id = f"email_notification_{config_entry.entry_id}"
         self.entity_id = f"notify.email_notification_sender_{hass.data[DOMAIN][GLOBAL_COUNTER]}"
         self._set_entity_name()
         # Add a listener for config changes and remove when entity is unloaded
         config_entry.async_on_unload(config_entry.add_update_listener(self._async_update_options))
-
-
-    # ***********************************************************************************************************************************************
-    # Purpose:  Run when entity is about to be added to hass (not used here).
-    # History:  D.Geisenhoff    07-MAY-2025     Created
-    # ***********************************************************************************************************************************************
-    async def async_added_to_hass(self) -> None:
-        """Run when entity is about to be added to hass."""
-        await super().async_added_to_hass()
-
-
-    # ***********************************************************************************************************************************************
-    # Purpose:  Run when entity will be removed from hass (not used here).
-    # History:  D.Geisenhoff    07-MAY-2025     Created
-    # ***********************************************************************************************************************************************
-    async def async_will_remove_from_hass(self) -> None:
-        """Run when entity will be removed from hass."""
-        await super().async_will_remove_from_hass()
 
 
     # ***********************************************************************************************************************************************
