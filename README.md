@@ -10,7 +10,9 @@ The original project is based on Home Assistant's SMTP integration and adds a UI
 
 This fork keeps that behavior and allows SMTP authentication to be skipped for local relays or SMTP servers that do not require a username and password.
 
-## Fork Changes
+## Changelog
+
+### Current Fork Changes
 
 - Username and password are optional in the config UI and options UI.
 - SMTP authentication is used only when both username and password are provided.
@@ -224,10 +226,6 @@ data:
 ```
 
 When `sender_name` and `from_address` are both supplied, the displayed sender is formatted like `Home Security System <security@mydomain.com>`.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 
