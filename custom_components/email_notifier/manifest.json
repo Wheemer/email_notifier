@@ -1,7 +1,7 @@
 {
   "domain": "email_notifier",
   "name": "Email Notification Service",
-  "codeowners": ["@Wheemer", "@microteq"],
+  "codeowners": ["@Wheemer"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Wheemer/email_notifier",
