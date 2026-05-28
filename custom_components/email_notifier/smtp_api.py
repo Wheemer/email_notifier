@@ -153,12 +153,16 @@ class SmtpAPI:
     # Purpose:  Send message using form. Uses email_notification.send sevice
     # History:  D.Geisenhoff    07-MAY-2025     Created
     # ***********************************************************************************************************************************************
-    async def send_message(self, message="", title="Home Assistant", config_data = {}, data = {}):
+    async def send_message(self, message="", title="Home Assistant", config_data=None, data=None):
         """Build and send a message to a user.
 
         Will send plain text normally, with pictures as attachments if images config is
         defined, or will build a multipart HTML if html config is defined.
         """
+        if config_data is None:
+            config_data = {}
+        if data is None:
+            data = {}
         self.config_data = config_data
         if ATTR_HTML in data:
             # HTML text flag
@@ -325,7 +329,7 @@ async def _attach_file(hass, atch_name, content_id=""):
                         "url": url,
                     },
                 )
-            with Path.open(atch_name, "rb") as attachment_file:
+            with Path(atch_name).open("rb") as attachment_file:
                 file_bytes = attachment_file.read()
             file_name = Path(atch_name).name
         except FileNotFoundError:
