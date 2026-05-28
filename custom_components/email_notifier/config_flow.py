@@ -5,7 +5,6 @@
 """Config flow for Email Client integration."""
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
 
 import voluptuous as vol
@@ -47,31 +46,39 @@ def _test_connection(hass: HomeAssistant, user_input) -> bool:
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][GLOBAL_API] = SmtpAPI(hass)
     api = hass.data[DOMAIN][GLOBAL_API]
-    return api.connection_is_valid(user_input, True)
+    return api.connection_is_valid(_clean_config_data(user_input), True)
 
 
 
-def _get_config_value(config_entry, user_input: dict[str, Any], key: str, default: Any = None) -> Any:
+def _entry_sources(flow) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return options and data sources for a config or options flow."""
+    entry = getattr(flow, "_entry", None)
+    if entry is None:
+        return {}, {}
+    return entry.options, entry.data
+
+
+
+def _get_config_value(flow, user_input: dict[str, Any], key: str, default: Any = None) -> Any:
     """Return a config value from form input, options, data, or default."""
-    return user_input.get(key, config_entry.options.get(key, config_entry.data.get(key, default)))
+    options, data = _entry_sources(flow)
+    return user_input.get(key, options.get(key, data.get(key, default)))
 
 
 
-def _remove_blank_credentials(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Avoid storing empty strings for optional SMTP credentials."""
-    data = dict(user_input)
-    if not data.get(CONF_USERNAME):
+def _clean_config_data(config_data: dict[str, Any]) -> dict[str, Any]:
+    """Remove optional SMTP credentials unless both are provided."""
+    data = dict(config_data)
+    if not (data.get(CONF_USERNAME) and data.get(CONF_PASSWORD)):
         data.pop(CONF_USERNAME, None)
-    if not data.get(CONF_PASSWORD):
         data.pop(CONF_PASSWORD, None)
     return data
 
 
 
 def _merge_config_data(current_data: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
-    """Merge submitted form data and discard blank optional credentials."""
-    new_data = {**current_data, **user_input}
-    return _remove_blank_credentials(new_data)
+    """Merge submitted form data and discard incomplete optional credentials."""
+    return _clean_config_data({**current_data, **user_input})
 
 
 
@@ -83,46 +90,40 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
     """Return schema."""
     if user_input is None:
         user_input = {}
-    if hasattr(self, "_entry"):
-        config_entry = self._entry
-    else:
-        config_entry =  SimpleNamespace()
-        config_entry.options = {}
-        config_entry.data = {}
 
     return vol.Schema(
     {
         vol.Required(
             CONF_SERVER,
-            default = _get_config_value(config_entry, user_input, CONF_SERVER),
+            default = _get_config_value(self, user_input, CONF_SERVER),
         ): str,
         vol.Required(
             CONF_PORT,
-            default = _get_config_value(config_entry, user_input, CONF_PORT, DEFAULT_PORT),
+            default = _get_config_value(self, user_input, CONF_PORT, DEFAULT_PORT),
         ): int,
         vol.Optional(
             CONF_USERNAME,
-            default = _get_config_value(config_entry, user_input, CONF_USERNAME),
+            default = _get_config_value(self, user_input, CONF_USERNAME),
         ): str,
         vol.Optional(
             CONF_PASSWORD,
-            default = _get_config_value(config_entry, user_input, CONF_PASSWORD),
+            default = _get_config_value(self, user_input, CONF_PASSWORD),
         ): str,
         vol.Required(
             CONF_SENDER,
-            default = _get_config_value(config_entry, user_input, CONF_SENDER),
+            default = _get_config_value(self, user_input, CONF_SENDER),
         ): str,
         vol.Required(
             CONF_RECIPIENTS,
-            default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
+            default = _get_config_value(self, user_input, CONF_RECIPIENTS),
         ): str,
         vol.Optional(
             CONF_SENDER_NAME,
-            default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
+            default = _get_config_value(self, user_input, CONF_SENDER_NAME, "Home Assistant"),
         ): str,
         vol.Required(
                 CONF_ENCRYPTION,
-                default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
+                default = _get_config_value(self, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options =  ENCRYPTION_OPTIONS,
@@ -130,7 +131,7 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
             )),
         vol.Required(
             CONF_TIMEOUT,
-            default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            default = _get_config_value(self, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
         ): int,
         vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
     })
@@ -151,12 +152,11 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            user_input = _remove_blank_credentials(user_input)
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     errors["base"] = "connection_failed"
                     return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
-            return self.async_create_entry(title=user_input[CONF_SENDER], data=_merge_config_data({}, user_input))
+            return self.async_create_entry(title=user_input[CONF_SENDER], data=_clean_config_data(user_input))
 
         return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
 
@@ -201,7 +201,6 @@ class EmailClientOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult[ConfigFlowContext, str]:
         """Manage the options."""
         if user_input is not None:
-            user_input = _remove_blank_credentials(user_input)
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     return self.async_show_form(
