@@ -16,9 +16,15 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 
 from .const import (
+    ATTR_ATTACHMENTS,
+    ATTR_FROM_ADDRESS,
+    ATTR_HTML,
+    ATTR_IMAGES,
+    ATTR_REPLY_TO,
+    ATTR_SENDER_NAME,
     CONF_ENCRYPTION,
     CONF_PASSWORD,
     CONF_PORT,
@@ -38,27 +44,44 @@ from .const import (
 from .smtp_api import SmtpAPI
 
 _LOGGER = logging.getLogger(__name__)
+SERVICE_SEND = "send"
+ATTR_ACCOUNT = "account"
+ATTR_TITLE = "title"
+ATTR_MESSAGE = "message"
 
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Required(CONF_SERVER): str,
-                vol.Required(CONF_PORT): int,
-                vol.Optional(CONF_USERNAME): str,
-                vol.Optional(CONF_PASSWORD): str,
-                vol.Required(CONF_SENDER): str,
-                vol.Required(CONF_RECIPIENTS): str,
-                vol.Optional(CONF_SENDER_NAME): str,
-                vol.Required(CONF_ENCRYPTION): selector.SelectSelector(selector.SelectSelectorConfig(
-                    options =  ENCRYPTION_OPTIONS,
-                    translation_key = CONF_ENCRYPTION)),
-                vol.Required(CONF_TIMEOUT): int,
-                vol.Optional(CONF_TEST_CONNECTION): bool
+                vol.Required(CONF_SERVER): cv.string,
+                vol.Required(CONF_PORT): cv.port,
+                vol.Optional(CONF_USERNAME): cv.string,
+                vol.Optional(CONF_PASSWORD): cv.string,
+                vol.Required(CONF_SENDER): cv.string,
+                vol.Required(CONF_RECIPIENTS): cv.string,
+                vol.Optional(CONF_SENDER_NAME): cv.string,
+                vol.Required(CONF_ENCRYPTION): vol.In(ENCRYPTION_OPTIONS),
+                vol.Required(CONF_TIMEOUT): cv.positive_int,
+                vol.Optional(CONF_TEST_CONNECTION): cv.boolean
             }
         )
     },
     extra=vol.ALLOW_EXTRA,  # Allow additional keys in YAML
+)
+
+SERVICE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_ACCOUNT): cv.string,
+        vol.Optional(CONF_RECIPIENTS): cv.string,
+        vol.Optional(ATTR_TITLE): cv.string,
+        vol.Optional(ATTR_MESSAGE): cv.string,
+        vol.Optional(ATTR_HTML): cv.string,
+        vol.Optional(ATTR_IMAGES): cv.string,
+        vol.Optional(ATTR_ATTACHMENTS): cv.string,
+        vol.Optional(ATTR_FROM_ADDRESS): cv.string,
+        vol.Optional(ATTR_SENDER_NAME): cv.string,
+        vol.Optional(ATTR_REPLY_TO): cv.string,
+    }
 )
 
 
@@ -76,6 +99,13 @@ def init_vars(hass: HomeAssistant):
         hass.data[DOMAIN][GLOBAL_COUNTER] += 1
 
 
+def _split_multiline(value):
+    """Return non-empty lines from a multiline service field."""
+    if isinstance(value, str):
+        return [line.strip() for line in value.split("\n") if line.strip()]
+    return value
+
+
 # ***********************************************************************************************************************************************
 # Purpose:  Send message callback function of service
 # History:  D.Geisenhoff    07-MAY-2025     Created
@@ -83,42 +113,30 @@ def init_vars(hass: HomeAssistant):
 async def async_send_email(call):
     """Send an email."""
     data = {}
-    if call.data.get("html"):
-        data["html"] = call.data.get("html")
-    if call.data.get("images"):
-        # Parse multiline string input into list
-        images_input = call.data.get("images")
-        if isinstance(images_input, str):
-            # Split by newlines and filter out empty lines
-            data["images"] = [line.strip() for line in images_input.split('\n') if line.strip()]
-        elif isinstance(images_input, list):
-            data["images"] = images_input
-    if call.data.get("attachments"):
-        # Parse multiline string input into list
-        attachments_input = call.data.get("attachments")
-        if isinstance(attachments_input, str):
-            # Split by newlines and filter out empty lines
-            data["attachments"] = [line.strip() for line in attachments_input.split('\n') if line.strip()]
-        elif isinstance(attachments_input, list):
-            data["attachments"] = attachments_input
-    if call.data.get("account"):
-        data["account"] = call.data.get("account")
-    if call.data.get("recipients"):
-        data["recipients"] = call.data.get("recipients")
-    if call.data.get("from_address"):
-        data["from_address"] = call.data.get("from_address")
-    if call.data.get("sender_name"):
-        data["sender_name"] = call.data.get("sender_name")
-    if call.data.get("reply_to"):
-        data["reply_to"] = call.data.get("reply_to")
+    if call.data.get(ATTR_HTML):
+        data[ATTR_HTML] = call.data.get(ATTR_HTML)
+    if call.data.get(ATTR_IMAGES):
+        data[ATTR_IMAGES] = _split_multiline(call.data.get(ATTR_IMAGES))
+    if call.data.get(ATTR_ATTACHMENTS):
+        data[ATTR_ATTACHMENTS] = _split_multiline(call.data.get(ATTR_ATTACHMENTS))
+    if call.data.get(ATTR_ACCOUNT):
+        data[ATTR_ACCOUNT] = call.data.get(ATTR_ACCOUNT)
+    if call.data.get(CONF_RECIPIENTS):
+        data[CONF_RECIPIENTS] = call.data.get(CONF_RECIPIENTS)
+    if call.data.get(ATTR_FROM_ADDRESS):
+        data[ATTR_FROM_ADDRESS] = call.data.get(ATTR_FROM_ADDRESS)
+    if call.data.get(ATTR_SENDER_NAME):
+        data[ATTR_SENDER_NAME] = call.data.get(ATTR_SENDER_NAME)
+    if call.data.get(ATTR_REPLY_TO):
+        data[ATTR_REPLY_TO] = call.data.get(ATTR_REPLY_TO)
     # Get sender entity
     entity_reg = er.async_get(call.hass)
-    entity = entity_reg.async_get(data["account"])
+    entity = entity_reg.async_get(data[ATTR_ACCOUNT])
     if entity is None:
-        _LOGGER.error("No entity found for account %s", data["account"])
+        _LOGGER.error("No entity found for account %s", data[ATTR_ACCOUNT])
         return
     # Run send_message function of entity
-    await call.hass.data[DOMAIN][entity.config_entry_id].send_message(call.data.get("message", ""), call.data.get("title", "Home Assistant"), data)
+    await call.hass.data[DOMAIN][entity.config_entry_id].send_message(call.data.get(ATTR_MESSAGE, ""), call.data.get(ATTR_TITLE, "Home Assistant"), data)
 
 
 
@@ -132,27 +150,14 @@ async def async_setup(hass, config):
     if DOMAIN not in hass.data:
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][GLOBAL_API] = SmtpAPI(hass)
-    if "send" in hass.services.async_services().get(DOMAIN, {}):
-        _LOGGER.info("Service %s.%s is already registered.", DOMAIN, "send")
+    if SERVICE_SEND in hass.services.async_services().get(DOMAIN, {}):
+        _LOGGER.info("Service %s.%s is already registered.", DOMAIN, SERVICE_SEND)
     else:
         hass.services.async_register(
             DOMAIN,
-            "send",
+            SERVICE_SEND,
             async_send_email,
-            schema=vol.Schema(
-                {
-                    vol.Required("account"): str,
-                    vol.Optional("recipients"): str,
-                    vol.Optional("title"): str,
-                    vol.Optional("message"): str,
-                    vol.Optional("html"): str,
-                    vol.Optional("images"): str,
-                    vol.Optional("attachments"): str,
-                    vol.Optional("from_address"): str,
-                    vol.Optional("sender_name"): str,
-                    vol.Optional("reply_to"): str,
-                }
-            ),
+            schema=SERVICE_SCHEMA,
         )
     return True
 
@@ -199,7 +204,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         num_entries = len(config_entries)
         if num_entries == 1:
             # Unregister the service, when last entry is removed
-            hass.services.async_remove(DOMAIN, "send")
+            hass.services.async_remove(DOMAIN, SERVICE_SEND)
             # Remove all domain data
             hass.data.pop(DOMAIN)
     return unload_ok
