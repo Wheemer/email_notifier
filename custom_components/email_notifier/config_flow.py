@@ -24,13 +24,11 @@ from .const import (
     CONF_SENDER,
     CONF_SENDER_NAME,
     CONF_SERVER,
-    CONF_SMTP_AUTH,
     CONF_TEST_CONNECTION,
     CONF_TIMEOUT,
     CONF_USERNAME,
     DEFAULT_ENCRYPTION,
     DEFAULT_PORT,
-    DEFAULT_SMTP_AUTH,
     DEFAULT_TIMEOUT,
     DOMAIN,
     ENCRYPTION_OPTIONS,
@@ -59,29 +57,21 @@ def _get_config_value(config_entry, user_input: dict[str, Any], key: str, defaul
 
 
 
-def _auth_fields_present(user_input: dict[str, Any]) -> bool:
-    """Return true if auth fields were submitted from an auth-enabled form."""
-    return CONF_USERNAME in user_input or CONF_PASSWORD in user_input
-
-
-
-def _strip_auth_fields(user_input: dict[str, Any]) -> dict[str, Any]:
-    """Remove auth-only fields when SMTP authentication is disabled."""
-    return {
-        key: value
-        for key, value in user_input.items()
-        if key not in (CONF_USERNAME, CONF_PASSWORD)
-    }
+def _remove_blank_credentials(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Avoid storing empty strings for optional SMTP credentials."""
+    data = dict(user_input)
+    if not data.get(CONF_USERNAME):
+        data.pop(CONF_USERNAME, None)
+    if not data.get(CONF_PASSWORD):
+        data.pop(CONF_PASSWORD, None)
+    return data
 
 
 
 def _merge_config_data(current_data: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
-    """Merge submitted form data and discard credentials when auth is disabled."""
+    """Merge submitted form data and discard blank optional credentials."""
     new_data = {**current_data, **user_input}
-    if not new_data.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH):
-        new_data.pop(CONF_USERNAME, None)
-        new_data.pop(CONF_PASSWORD, None)
-    return new_data
+    return _remove_blank_credentials(new_data)
 
 
 
@@ -100,8 +90,8 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
         config_entry.options = {}
         config_entry.data = {}
 
-    smtp_auth = _get_config_value(config_entry, user_input, CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH)
-    schema = {
+    return vol.Schema(
+    {
         vol.Required(
             CONF_SERVER,
             default = _get_config_value(config_entry, user_input, CONF_SERVER),
@@ -111,53 +101,39 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
             default = _get_config_value(config_entry, user_input, CONF_PORT, DEFAULT_PORT),
         ): int,
         vol.Optional(
-            CONF_SMTP_AUTH,
-            default = smtp_auth,
-        ): bool,
-    }
-    if smtp_auth:
-        schema.update(
-            {
-                vol.Required(
-                    CONF_USERNAME,
-                    default = _get_config_value(config_entry, user_input, CONF_USERNAME),
-                ): str,
-                vol.Required(
-                    CONF_PASSWORD,
-                    default = _get_config_value(config_entry, user_input, CONF_PASSWORD),
-                ): str,
-            }
-        )
-    schema.update(
-        {
-            vol.Required(
-                CONF_SENDER,
-                default = _get_config_value(config_entry, user_input, CONF_SENDER),
-            ): str,
-            vol.Required(
-                CONF_RECIPIENTS,
-                default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
-            ): str,
-            vol.Optional(
-                CONF_SENDER_NAME,
-                default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
-            ): str,
-            vol.Required(
-                    CONF_ENCRYPTION,
-                    default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options =  ENCRYPTION_OPTIONS,
-                        translation_key = CONF_ENCRYPTION,
-                )),
-            vol.Required(
-                CONF_TIMEOUT,
-                default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
-            ): int,
-            vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
-        }
-    )
-    return vol.Schema(schema)
+            CONF_USERNAME,
+            default = _get_config_value(config_entry, user_input, CONF_USERNAME),
+        ): str,
+        vol.Optional(
+            CONF_PASSWORD,
+            default = _get_config_value(config_entry, user_input, CONF_PASSWORD),
+        ): str,
+        vol.Required(
+            CONF_SENDER,
+            default = _get_config_value(config_entry, user_input, CONF_SENDER),
+        ): str,
+        vol.Required(
+            CONF_RECIPIENTS,
+            default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
+        ): str,
+        vol.Optional(
+            CONF_SENDER_NAME,
+            default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
+        ): str,
+        vol.Required(
+                CONF_ENCRYPTION,
+                default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options =  ENCRYPTION_OPTIONS,
+                    translation_key = CONF_ENCRYPTION,
+            )),
+        vol.Required(
+            CONF_TIMEOUT,
+            default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
+        ): int,
+        vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
+    })
 
 
 
@@ -175,9 +151,7 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if not user_input.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH) and _auth_fields_present(user_input):
-                user_input = _strip_auth_fields(user_input)
-                return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
+            user_input = _remove_blank_credentials(user_input)
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     errors["base"] = "connection_failed"
@@ -227,9 +201,7 @@ class EmailClientOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult[ConfigFlowContext, str]:
         """Manage the options."""
         if user_input is not None:
-            if not user_input.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH) and _auth_fields_present(user_input):
-                user_input = _strip_auth_fields(user_input)
-                return self.async_show_form(step_id="init", data_schema=get_schema(self, user_input))
+            user_input = _remove_blank_credentials(user_input)
             if user_input.get(CONF_TEST_CONNECTION):
                 if not _test_connection(self.hass,user_input):
                     return self.async_show_form(
