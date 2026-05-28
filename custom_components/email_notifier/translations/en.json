@@ -12,6 +12,7 @@
                 {
                     "server": "SMTP Server",
                     "port": "Port",
+                    "smtp_auth": "Use SMTP Authentication",
                     "username": "Username",
                     "password": "Password",
                     "sender": "Sender Email",
@@ -44,6 +45,7 @@
                 {
                     "server": "SMTP Server",
                     "port": "Port",
+                    "smtp_auth": "Use SMTP Authentication",
                     "username": "Username",
                     "password": "Password",
                     "sender": "Sender Email",
