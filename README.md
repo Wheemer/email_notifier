@@ -8,16 +8,15 @@
 
 Credit where it is due: this fork is based on the original [Email Notifier](https://github.com/microteq/email_notifier) integration by [@microteq](https://github.com/microteq). The original project is based on Home Assistant's SMTP integration and adds a UI-based configuration flow for email notification accounts.
 
-This fork keeps that behavior and adds optional SMTP authentication support for local relays or SMTP servers that do not require a username and password.
+This fork keeps that behavior and allows SMTP authentication to be skipped for local relays or SMTP servers that do not require a username and password.
 
 ## Fork Changes
 
-- Added a **Use SMTP Authentication** checkbox to the config UI and options UI.
-- SMTP authentication is enabled by default for compatibility with existing setups.
-- When SMTP authentication is enabled, username and password are required.
-- When SMTP authentication is disabled, username and password are hidden from the form and removed from saved config data.
-- The SMTP client skips `mail.login()` when authentication is disabled.
-- YAML configuration can also omit username and password when SMTP authentication is disabled.
+- Username and password are optional in the config UI and options UI.
+- SMTP authentication is used only when both username and password are provided.
+- When username or password is left blank, the SMTP client connects without calling `mail.login()`.
+- Blank username and password values are not saved in config entry data.
+- YAML configuration can omit username and password for unauthenticated SMTP servers.
 
 ## Features
 
@@ -61,14 +60,11 @@ SMTP server used to send notifications.
 #### Port (default: 587)
 The SMTP server port.
 
-#### Use SMTP Authentication (default: enabled)
-When enabled, the integration authenticates with the SMTP server using username and password. When disabled, username and password are not required and the integration connects without calling SMTP login.
-
 #### Username
-Username for the SMTP account. Required only when **Use SMTP Authentication** is enabled.
+Optional username for the SMTP account. If both username and password are provided, the integration authenticates with the SMTP server.
 
 #### Password
-Password for the SMTP account. Required only when **Use SMTP Authentication** is enabled.
+Optional password for the SMTP account. If either username or password is left blank, the integration connects without SMTP authentication.
 
 #### Sender Email
 Email address used as the sender.
@@ -87,7 +83,7 @@ SMTP connection timeout in seconds.
 
 ## Google Mail
 
-Google Mail requires SMTP authentication and an application-specific password. Leave **Use SMTP Authentication** enabled when using Gmail.
+Google Mail requires SMTP authentication and an application-specific password. Fill in both username and password when using Gmail.
 
 You may not be able to create an app password if:
 
