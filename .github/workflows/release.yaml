@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - custom_components/email_notifier/manifest.json
+      - CHANGELOG.md
+      - .github/workflows/release.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: publish-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          version="$(jq -r '.version' custom_components/email_notifier/manifest.json)"
+          tag="v${version}"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+
+          notes="$(awk -v version="$version" '
+            $0 == "## " version " - 2026-05-28" { in_section = 1; next }
+            /^## / && in_section { exit }
+            in_section { print }
+          ' CHANGELOG.md)"
+
+          if [ -z "$notes" ]; then
+            notes="Release $tag."
+          fi
+
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --notes "$notes"
