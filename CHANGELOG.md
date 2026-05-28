@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 - 2026-05-28
+
+### Fixed
+- Fixed the config UI validation error that showed `expected str` when username or password was left blank.
+- Optional SMTP credential fields now default to empty strings in the form and are removed from saved config unless both are filled.
+- Removed the old upstream email placeholder from the config flow title placeholders.
+
 ## 0.1.4 - 2026-05-28
 
 ### Changed
