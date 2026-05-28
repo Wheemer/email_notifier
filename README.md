@@ -6,6 +6,8 @@
 
 **Sending email notifications from Home Assistant.**
 
+Credit where it is due: this fork is based on the original [Email Notifier](https://github.com/microteq/email_notifier) integration by [@microteq](https://github.com/microteq).
+
 The original project is based on Home Assistant's SMTP integration and adds a UI-based configuration flow for email notification accounts.
 
 This fork keeps that behavior and allows SMTP authentication to be skipped for local relays or SMTP servers that do not require a username and password.
@@ -15,8 +17,10 @@ This fork keeps that behavior and allows SMTP authentication to be skipped for l
 - Username and password are optional in the config UI and options UI.
 - SMTP authentication is used only when both username and password are provided.
 - When username or password is left blank, the SMTP client connects without calling `mail.login()`.
-- Blank username and password values are not saved in config entry data.
+- Blank or incomplete username/password values are not saved in config entry data.
 - YAML configuration can omit username and password for unauthenticated SMTP servers.
+- The repository declares Home Assistant `2024.4.1` as the minimum supported version for HACS.
+- GitHub Actions validate the repository with both HACS validation and Hassfest.
 
 ## Features
 
@@ -29,6 +33,10 @@ This fork keeps that behavior and allows SMTP authentication to be skipped for l
 - Supports inline images and file attachments, including local paths and remote URLs.
 - Options flow to update configurations without reinstalling the integration.
 - Detailed error handling and logging for troubleshooting.
+
+## Compatibility
+
+This fork is intended for Home Assistant `2024.4.1` or newer when installed through HACS. Repository validation runs with both the HACS validation action and Home Assistant Hassfest.
 
 ## Installation
 
@@ -218,6 +226,10 @@ data:
 ```
 
 When `sender_name` and `from_address` are both supplied, the displayed sender is formatted like `Home Security System <security@mydomain.com>`.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 
