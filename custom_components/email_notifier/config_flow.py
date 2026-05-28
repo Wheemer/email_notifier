@@ -49,7 +49,6 @@ def _test_connection(hass: HomeAssistant, user_input) -> bool:
     return api.connection_is_valid(_clean_config_data(user_input), True)
 
 
-
 def _entry_sources(flow) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return options and data sources for a config or options flow."""
     entry = getattr(flow, "_entry", None)
@@ -58,28 +57,44 @@ def _entry_sources(flow) -> tuple[dict[str, Any], dict[str, Any]]:
     return entry.options, entry.data
 
 
-
 def _get_config_value(flow, user_input: dict[str, Any], key: str, default: Any = None) -> Any:
     """Return a config value from form input, options, data, or default."""
     options, data = _entry_sources(flow)
     return user_input.get(key, options.get(key, data.get(key, default)))
 
 
+def _get_text_config_value(flow, user_input: dict[str, Any], key: str, default: str = "") -> str:
+    """Return a string-safe config value for text form fields."""
+    value = _get_config_value(flow, user_input, key, default)
+    if value is None:
+        return ""
+    return str(value)
+
 
 def _clean_config_data(config_data: dict[str, Any]) -> dict[str, Any]:
     """Remove optional SMTP credentials unless both are provided."""
     data = dict(config_data)
-    if not (data.get(CONF_USERNAME) and data.get(CONF_PASSWORD)):
+
+    username = data.get(CONF_USERNAME, "")
+    password = data.get(CONF_PASSWORD, "")
+    if isinstance(username, str):
+        username = username.strip()
+    if isinstance(password, str):
+        password = password.strip()
+
+    if username and password:
+        data[CONF_USERNAME] = username
+        data[CONF_PASSWORD] = password
+    else:
         data.pop(CONF_USERNAME, None)
         data.pop(CONF_PASSWORD, None)
-    return data
 
+    return data
 
 
 def _merge_config_data(current_data: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
     """Merge submitted form data and discard incomplete optional credentials."""
     return _clean_config_data({**current_data, **user_input})
-
 
 
 # ***********************************************************************************************************************************************
@@ -95,7 +110,7 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
     {
         vol.Required(
             CONF_SERVER,
-            default = _get_config_value(self, user_input, CONF_SERVER),
+            default = _get_text_config_value(self, user_input, CONF_SERVER),
         ): str,
         vol.Required(
             CONF_PORT,
@@ -103,23 +118,23 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
         ): int,
         vol.Optional(
             CONF_USERNAME,
-            default = _get_config_value(self, user_input, CONF_USERNAME),
+            default = _get_text_config_value(self, user_input, CONF_USERNAME),
         ): str,
         vol.Optional(
             CONF_PASSWORD,
-            default = _get_config_value(self, user_input, CONF_PASSWORD),
+            default = _get_text_config_value(self, user_input, CONF_PASSWORD),
         ): str,
         vol.Required(
             CONF_SENDER,
-            default = _get_config_value(self, user_input, CONF_SENDER),
+            default = _get_text_config_value(self, user_input, CONF_SENDER),
         ): str,
         vol.Required(
             CONF_RECIPIENTS,
-            default = _get_config_value(self, user_input, CONF_RECIPIENTS),
+            default = _get_text_config_value(self, user_input, CONF_RECIPIENTS),
         ): str,
         vol.Optional(
             CONF_SENDER_NAME,
-            default = _get_config_value(self, user_input, CONF_SENDER_NAME, "Home Assistant"),
+            default = _get_text_config_value(self, user_input, CONF_SENDER_NAME, "Home Assistant"),
         ): str,
         vol.Required(
                 CONF_ENCRYPTION,
@@ -135,7 +150,6 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
         ): int,
         vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
     })
-
 
 
 # ***********************************************************************************************************************************************
@@ -175,8 +189,8 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @property
     def _title_placeholders(self) -> dict[str, str]:
-        """Return title placeholders fuer die Entry."""
-        return {"email": "test@microteq.ch"}
+        """Return title placeholders for the entry."""
+        return {"email": "Email Notifier"}
 
 
 # ***********************************************************************************************************************************************
