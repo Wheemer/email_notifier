@@ -75,6 +75,16 @@ def _strip_auth_fields(user_input: dict[str, Any]) -> dict[str, Any]:
 
 
 
+def _merge_config_data(current_data: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
+    """Merge submitted form data and discard credentials when auth is disabled."""
+    new_data = {**current_data, **user_input}
+    if not new_data.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH):
+        new_data.pop(CONF_USERNAME, None)
+        new_data.pop(CONF_PASSWORD, None)
+    return new_data
+
+
+
 # ***********************************************************************************************************************************************
 # Purpose:  Get config flow schema
 # History:  D.Geisenhoff    07-MAY-2025     Created
@@ -104,31 +114,6 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
             CONF_SMTP_AUTH,
             default = smtp_auth,
         ): bool,
-        vol.Required(
-            CONF_SENDER,
-            default = _get_config_value(config_entry, user_input, CONF_SENDER),
-        ): str,
-        vol.Required(
-            CONF_RECIPIENTS,
-            default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
-        ): str,
-        vol.Optional(
-            CONF_SENDER_NAME,
-            default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
-        ): str,
-        vol.Required(
-                CONF_ENCRYPTION,
-                default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options =  ENCRYPTION_OPTIONS,
-                    translation_key = CONF_ENCRYPTION,
-            )),
-        vol.Required(
-            CONF_TIMEOUT,
-            default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
-        ): int,
-        vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
     }
     if smtp_auth:
         schema.update(
@@ -143,6 +128,35 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
                 ): str,
             }
         )
+    schema.update(
+        {
+            vol.Required(
+                CONF_SENDER,
+                default = _get_config_value(config_entry, user_input, CONF_SENDER),
+            ): str,
+            vol.Required(
+                CONF_RECIPIENTS,
+                default = _get_config_value(config_entry, user_input, CONF_RECIPIENTS),
+            ): str,
+            vol.Optional(
+                CONF_SENDER_NAME,
+                default = _get_config_value(config_entry, user_input, CONF_SENDER_NAME, "Home Assistant"),
+            ): str,
+            vol.Required(
+                    CONF_ENCRYPTION,
+                    default = _get_config_value(config_entry, user_input, CONF_ENCRYPTION, DEFAULT_ENCRYPTION),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options =  ENCRYPTION_OPTIONS,
+                        translation_key = CONF_ENCRYPTION,
+                )),
+            vol.Required(
+                CONF_TIMEOUT,
+                default = _get_config_value(config_entry, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
+            ): int,
+            vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
+        }
+    )
     return vol.Schema(schema)
 
 
@@ -168,7 +182,7 @@ class EmailClientConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not _test_connection(self.hass,user_input):
                     errors["base"] = "connection_failed"
                     return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
-            return self.async_create_entry(title=user_input[CONF_SENDER], data=user_input)
+            return self.async_create_entry(title=user_input[CONF_SENDER], data=_merge_config_data({}, user_input))
 
         return self.async_show_form(step_id="user", data_schema=get_schema(self, user_input), errors=errors)
 
@@ -225,7 +239,7 @@ class EmailClientOptionsFlow(config_entries.OptionsFlow):
                     )
             # Merge user_input and config_entry.data into new dictionary and save back to config_entry.data
             # config_entry.option is not needed, because the info for creating an entry (data) and for editing an entry (option) is the same.
-            new_data = {**self._entry.data, **user_input}
+            new_data = _merge_config_data(self._entry.data, user_input)
             # async_update_entry saves the new changes
             self.hass.config_entries.async_update_entry(self._entry, data=new_data, title = user_input[CONF_SENDER])
             # Save back an empty object to config_entry.options
