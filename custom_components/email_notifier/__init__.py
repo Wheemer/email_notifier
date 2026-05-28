@@ -10,9 +10,11 @@
 """Email Notification Service integration."""
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
 
-from homeassistant.config_entries import _LOGGER, ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, selector
 
@@ -35,12 +37,14 @@ from .const import (
 )
 from .smtp_api import SmtpAPI
 
+_LOGGER = logging.getLogger(__name__)
+
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
                 vol.Required(CONF_SERVER): str,
-                vol.Required(CONF_PORT): str,
+                vol.Required(CONF_PORT): int,
                 vol.Optional(CONF_USERNAME): str,
                 vol.Optional(CONF_PASSWORD): str,
                 vol.Required(CONF_SENDER): str,
@@ -130,25 +134,26 @@ async def async_setup(hass, config):
         hass.data[DOMAIN][GLOBAL_API] = SmtpAPI(hass)
     if "send" in hass.services.async_services().get(DOMAIN, {}):
         _LOGGER.info("Service %s.%s is already registered.", DOMAIN, "send")
-    hass.services.async_register(
-        DOMAIN,
-        "send",
-        async_send_email,
-        schema=vol.Schema(
-            {
-                vol.Required("account"): str,
-                vol.Optional("recipients"): str,
-                vol.Optional("title"): str,
-                vol.Optional("message"): str,
-                vol.Optional("html"): str,
-                vol.Optional("images"): str,
-                vol.Optional("attachments"): str,
-                vol.Optional("from_address"): str,
-                vol.Optional("sender_name"): str,
-                vol.Optional("reply_to"): str,
-            }
-        ),
-    )
+    else:
+        hass.services.async_register(
+            DOMAIN,
+            "send",
+            async_send_email,
+            schema=vol.Schema(
+                {
+                    vol.Required("account"): str,
+                    vol.Optional("recipients"): str,
+                    vol.Optional("title"): str,
+                    vol.Optional("message"): str,
+                    vol.Optional("html"): str,
+                    vol.Optional("images"): str,
+                    vol.Optional("attachments"): str,
+                    vol.Optional("from_address"): str,
+                    vol.Optional("sender_name"): str,
+                    vol.Optional("reply_to"): str,
+                }
+            ),
+        )
     return True
 
 
