@@ -13,8 +13,8 @@ send:
       selector:
         text:
     title:
-      required: true
-      description: Email subject line
+      required: false
+      description: Email subject line. Defaults to Home Assistant when omitted.
       example: "Home Assistant Notification"
       selector:
         text:
