@@ -45,9 +45,11 @@ from .const import (
     CONF_SENDER,
     CONF_SENDER_NAME,
     CONF_SERVER,
+    CONF_SMTP_AUTH,
     CONF_TIMEOUT,
     CONF_USERNAME,
     DEFAULT_DEBUG,
+    DEFAULT_SMTP_AUTH,
     DOMAIN,
     # ERROR_CONNECTION_FAILED,
     # ERROR_INVALID_KEY,
@@ -104,7 +106,7 @@ class SmtpAPI:
             if self.config_data[CONF_ENCRYPTION] == "starttls":
                 mail.starttls(context=ssl_context)
                 mail.ehlo()
-            if self.config_data[CONF_USERNAME] and self.config_data[CONF_PASSWORD]:
+            if self.config_data.get(CONF_SMTP_AUTH, DEFAULT_SMTP_AUTH):
                 mail.login(self.config_data[CONF_USERNAME], self.config_data[CONF_PASSWORD])
         except (socket.gaierror, ConnectionRefusedError) as err:
             if self.hass and self.hass.states:
