@@ -11,6 +11,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowContext
+from homeassistant.const import CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
@@ -148,6 +149,10 @@ def get_schema(self, user_input: dict[str, Any] | None) -> vol.Schema:
             CONF_TIMEOUT,
             default = _get_config_value(self, user_input, CONF_TIMEOUT, DEFAULT_TIMEOUT),
         ): int,
+        vol.Optional(
+            CONF_VERIFY_SSL,
+            default = _get_config_value(self, user_input, CONF_VERIFY_SSL, True),
+        ): bool,
         vol.Optional(CONF_TEST_CONNECTION, default = False): bool,
     })
 

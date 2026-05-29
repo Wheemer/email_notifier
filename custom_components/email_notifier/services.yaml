@@ -5,7 +5,9 @@ send:
       description: The email account entity to use for sending
       selector:
         entity:
-          integration: email_notifier
+          filter:
+            - domain: notify
+              integration: email_notifier
     recipients:
       required: false
       description: Email recipient(s). Comma-separated for multiple recipients. If not provided, uses default recipients from config.

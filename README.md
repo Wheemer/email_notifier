@@ -18,6 +18,10 @@ This fork keeps that behavior and allows SMTP authentication to be skipped for l
 | Changed | Username and password fields are now optional in both the config flow and options flow. |
 | Changed | SMTP login is only attempted when both username and password are provided. |
 | Fixed | Blank or incomplete SMTP credentials are no longer saved in config entry data. |
+| Added | SMTP SSL certificate verification can now be disabled from the config UI when needed for self-signed certificates. |
+| Fixed | The Email Notifier service account selector now targets notify entities from this integration more explicitly. |
+| Fixed | Failed SMTP sends now raise an error after retries instead of only logging retry attempts. |
+| Fixed | Per-message sender name overrides now work without also overriding the sender address. |
 | Changed | YAML configuration can now omit username and password for unauthenticated SMTP servers. |
 | Added | HACS metadata now declares Home Assistant `2024.4.1` as the minimum supported version. |
 | Added | GitHub Actions validation now runs both HACS validation and Hassfest. |
@@ -88,6 +92,9 @@ SMTP encryption mode: `starttls`, `tls`, or `none`.
 
 #### Timeout (default: 15)
 SMTP connection timeout in seconds.
+
+#### Verify SSL (default: enabled)
+Controls certificate verification for encrypted SMTP connections. Leave enabled unless your SMTP server uses a self-signed or otherwise untrusted certificate.
 
 ## Google Mail
 

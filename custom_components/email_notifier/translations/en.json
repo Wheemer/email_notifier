@@ -19,6 +19,7 @@
                     "sender_name": "Sender Name",
                     "encryption": "Encryption",
                     "timeout": "Timeout (seconds)",
+                    "verify_ssl": "Verify SSL",
                     "test_connection": "Test Connection"
                 }
             }
@@ -51,6 +52,7 @@
                     "sender_name": "Sender Name",
                     "encryption": "Encryption",
                     "timeout": "Timeout (seconds)",
+                    "verify_ssl": "Verify SSL",
                     "test_connection": "Test Connection"
                 }
             }

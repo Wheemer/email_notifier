@@ -201,21 +201,13 @@ class SmtpAPI:
         else:
             msg["To"] = self.config_data[CONF_RECIPIENTS] if isinstance(self.config_data[CONF_RECIPIENTS], str) else ",".join(self.config_data[CONF_RECIPIENTS])
             recipient_list = [recipient.strip() for recipient in self.config_data[CONF_RECIPIENTS].split(",")] if isinstance(self.config_data[CONF_RECIPIENTS], str) else self.config_data[CONF_RECIPIENTS]
-        # Sender: Use from_address from data if provided, otherwise use config sender
-        if ATTR_FROM_ADDRESS in data:
-            # Custom from address provided in data
-            from_address = data[ATTR_FROM_ADDRESS]
-            # Check if sender_name is also provided in data
-            if "sender_name" in data:
-                msg["From"] = f"{data['sender_name']} <{from_address}>"
-            else:
-                msg["From"] = from_address
+        # Sender: Use per-message sender overrides when provided.
+        from_address = data.get(ATTR_FROM_ADDRESS, self.config_data[CONF_SENDER])
+        sender_name = data.get(CONF_SENDER_NAME, self.config_data.get(CONF_SENDER_NAME))
+        if sender_name:
+            msg["From"] = f"{sender_name} <{from_address}>"
         else:
-            # Use config sender
-            if self.config_data.get(CONF_SENDER_NAME):
-                msg["From"] = f"{self.config_data[CONF_SENDER_NAME]} <{self.config_data[CONF_SENDER]}>"
-            else:
-                msg["From"] = self.config_data[CONF_SENDER]
+            msg["From"] = from_address
 
         # Reply-To: Add reply-to header if provided
         if ATTR_REPLY_TO in data:
@@ -235,23 +227,30 @@ class SmtpAPI:
     def _send_email(self, msg, recipients):
         """Send the message."""
         mail = self.connect()
+        if mail is None:
+            raise HomeAssistantError("Could not connect to the SMTP server.")
+
+        last_error = None
         for _ in range(self.tries):
             try:
-                if mail:
-                    mail.sendmail(self.config_data[CONF_SENDER], recipients, msg.as_string())
-                break
-            except smtplib.SMTPServerDisconnected:
+                mail.sendmail(self.config_data[CONF_SENDER], recipients, msg.as_string())
+                mail.quit()
+                return
+            except smtplib.SMTPServerDisconnected as err:
+                last_error = err
                 _LOGGER.warning("SMTPServerDisconnected sending mail: retrying connection")
                 if mail:
                     mail.quit()
                 mail = self.connect()
-            except smtplib.SMTPException:
+            except smtplib.SMTPException as err:
+                last_error = err
                 _LOGGER.warning("SMTPException sending mail: retrying connection")
                 if mail:
                     mail.quit()
                 mail = self.connect()
         if mail:
             mail.quit()
+        raise HomeAssistantError(f"SMTPException sending mail after {self.tries} attempts: {last_error}") from last_error
 
 
 # ***********************************************************************************************************************************************
@@ -405,6 +404,5 @@ async def _build_html_msg(hass, text, html, images):
         if attachment:
             msg.attach(attachment)
     return msg
-
 
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.6 - 2026-05-28
+
+### Added
+- Added a `verify_ssl` option to the config flow and options flow for SMTP servers with self-signed or otherwise untrusted certificates.
+- Added YAML support for `verify_ssl`.
+
+### Fixed
+- Made the Email Notifier service account selector target `notify` entities from this integration so the Home Assistant UI can populate the account dropdown more reliably.
+- Service calls now raise a Home Assistant error when SMTP delivery still fails after retries instead of only logging the retry attempts.
+- Per-message `sender_name` overrides now work even when `from_address` is not also supplied.
+
 ## 0.1.5 - 2026-05-28
 
 ### Fixed

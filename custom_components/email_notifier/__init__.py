@@ -15,6 +15,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 
@@ -62,6 +63,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_SENDER_NAME): cv.string,
                 vol.Required(CONF_ENCRYPTION): vol.In(ENCRYPTION_OPTIONS),
                 vol.Required(CONF_TIMEOUT): cv.positive_int,
+                vol.Optional(CONF_VERIFY_SSL, default=True): cv.boolean,
                 vol.Optional(CONF_TEST_CONNECTION): cv.boolean
             }
         )
